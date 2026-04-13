@@ -7,7 +7,6 @@ import PyQt6.QtCore as Core
 import PyQt6.QtGui as Gui
 import keyboard
 
-# --- DATA WORKER (Media Sync) ---
 class MediaWorker(Core.QObject):
     image_ready = Core.pyqtSignal(Gui.QImage)
     status_changed = Core.pyqtSignal(bool)
@@ -40,27 +39,22 @@ class MediaWorker(Core.QObject):
                 img = Gui.QImage.fromData(data)
                 if not img.isNull(): self.image_ready.emit(img)
 
-# --- THE WIDGET ---
 class MusicWidget(Widgets.QWidget):
     def __init__(self):
         super().__init__()
         
-        # Frameless, On Top, No Taskbar Icon
         self.setWindowFlags(Core.Qt.WindowType.FramelessWindowHint | Core.Qt.WindowType.WindowStaysOnTopHint | Core.Qt.WindowType.Tool)
         self.setAttribute(Core.Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # FIXED SMALL SIZE
         self.setFixedSize(150, 150)
         
         self.album_pixmap = None
         self.drag_start_pos = None
 
-        # Logic Timer for Single/Double Click
         self.click_timer = Core.QTimer()
         self.click_timer.setSingleShot(True)
         self.click_timer.timeout.connect(lambda: keyboard.press_and_release('play/pause'))
 
-        # Background Worker
         self.worker_thread = Core.QThread()
         self.worker = MediaWorker()
         self.worker.moveToThread(self.worker_thread)
@@ -72,7 +66,6 @@ class MusicWidget(Widgets.QWidget):
         self.is_dragging = False
 
     def update_album(self, img):
-        # High-quality scaling for the small window
         self.album_pixmap = Gui.QPixmap.fromImage(img).scaled(
             150, 150, 
             Core.Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
@@ -81,10 +74,8 @@ class MusicWidget(Widgets.QWidget):
         self.update()
 
     def contextMenuEvent(self, event):
-        # Create a stylish context menu
         menu = Widgets.QMenu(self)
         
-        # Style the menu to match the dark theme
         menu.setStyleSheet("""
             QMenu {
                 background-color: #181818;
@@ -99,13 +90,10 @@ class MusicWidget(Widgets.QWidget):
             }
         """)
 
-        # Add the 'Close' action with an icon-like feel
         close_action = menu.addAction("✕  Close Widget")
-        
-        # Execute the menu and quit if "Close" is clicked
+
         action = menu.exec(self.mapToGlobal(event.pos()))
         if action == close_action:
-            # Optional: Add a fade-out animation before quitting
             self.fade_out_and_quit()
 
     def fade_out_and_quit(self):
@@ -123,7 +111,6 @@ class MusicWidget(Widgets.QWidget):
         
         w, h = self.width(), self.height()
 
-        # 1. DRAW ALBUM COVER
         path = Gui.QPainterPath()
         path.addRoundedRect(0, 0, w, h, 15, 15)
         painter.setClipPath(path)
@@ -134,22 +121,14 @@ class MusicWidget(Widgets.QWidget):
             painter.setBrush(Gui.QColor(30, 30, 30))
             painter.drawRect(0, 0, w, h)
 
-        # 2. THE INTERACTIVE PUNCHHOLE
-        # We stop clipping so we can draw the hole clearly
         painter.setClipping(False)
         
-        # We use DestinationOut to create the hole effect
         painter.setCompositionMode(Gui.QPainter.CompositionMode.CompositionMode_DestinationOut)
         
         hole_size = 16
         margin = 10
         hole_rect = Core.QRect(w - hole_size - margin, margin, hole_size, hole_size)
         
-        # DRAWING THE HOLE:
-        # We use a color with '1' alpha. 
-        # 0 = Click falls through (Non-interactive)
-        # 1-255 = Click registers (Interactive)
-        # We use 255 here but because the Mode is 'DestinationOut', it stays transparent!
         painter.setBrush(Gui.QColor(255, 255, 255, 255)) 
         painter.setPen(Core.Qt.PenStyle.NoPen)
         painter.drawEllipse(hole_rect)
@@ -161,27 +140,23 @@ class MusicWidget(Widgets.QWidget):
             x, y = event.position().x(), event.position().y()
             w = self.width()
             
-            # Hitbox for the punchhole
             if x > w - 30 and y < 30: 
                 self.drag_start_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-                self.is_dragging = False # Reset flag on new press
+                self.is_dragging = False
             else:
                 self.drag_start_pos = None
     def mouseReleaseEvent(self, event):
         if event.button() == Core.Qt.MouseButton.LeftButton:
-            # ONLY pause if we were NOT dragging
             if not self.is_dragging:
                 x = event.position().x()
-                # Ensure we only pause if clicking the album area, not the hole
                 if x < self.width() - 30:
                     self.click_timer.start(200)
             
-            # Reset everything
             self.is_dragging = False
             self.drag_start_pos = None
 
     def mouseDoubleClickEvent(self, event):
-        self.click_timer.stop() # Prevent Play/Pause
+        self.click_timer.stop()
         if event.position().x() < 75:
             keyboard.press_and_release('previous track')
         else:
@@ -189,7 +164,6 @@ class MusicWidget(Widgets.QWidget):
 
     def mouseMoveEvent(self, event):
         if self.drag_start_pos:
-            # If the mouse moves even a little, mark it as a drag
             self.is_dragging = True
             self.move(event.globalPosition().toPoint() - self.drag_start_pos)
 
