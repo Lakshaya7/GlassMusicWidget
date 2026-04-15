@@ -11,7 +11,7 @@ A minimalist, transparent "punchhole" music widget for Windows.
 
 ### 🚀 How to Run
 1. Clone the repo:
-   ```git clone https://github.com/YOUR_USERNAME/GlassMusicWidget.git```
+   ```git clone https://github.com/Lakshaya7/GlassMusicWidget.git```
 2. Install dependencies
    ```pip install -r requirements.txt```
 3. Run:
